@@ -224,7 +224,7 @@ class PostViewTests(TestCase):
             )
         )
         self.assertFalse(Follow.objects.filter(author=self.author_user,
-                                              user=self.user))
+                                               user=self.user))
 
     def test_unfolow_auth(self):
         self.authorized_user.get(
@@ -234,7 +234,7 @@ class PostViewTests(TestCase):
             )
         )
         self.assertFalse(Follow.objects.filter(author=self.author_user,
-                                              user=self.user))
+                                               user=self.user))
 
 
 class PaginatorViewsTest(TestCase):

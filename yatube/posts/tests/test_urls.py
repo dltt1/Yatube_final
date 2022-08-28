@@ -120,7 +120,7 @@ class ContactURLTests(TestCase):
     def test_404_page_not_found(self):
         """Ошибка стр. не существует 404"""
         response = self.guest.get(
-            f'/404notfound/'
+            '/404notfound/'
         )
         self.assertEqual(
             response.status_code,
