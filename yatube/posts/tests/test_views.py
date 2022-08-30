@@ -104,32 +104,31 @@ class PostViewTests(TestCase):
         self.assertEqual(post.group, PostViewTests.post.group)
         self.assertEqual(post.image, PostViewTests.post.image)
 
-    def test_post_create_page_correct_context(self):
-        """Шаблон post_create сформирован с правильным контекстом."""
-        response = self.authorized_user.get(reverse('posts:post_create'))
-        self.assertIn('form', response.context)
-        self.assertIsInstance(response.context['form'], PostForm)
-        self.assertIn('is_edit', response.context)
-        is_edit = response.context['is_edit']
-        self.assertIsInstance(is_edit, bool)
-        self.assertEqual(is_edit, False)
-
-    def test_post_edit_page_context(self):
+    def test_post_create_and_edit_page_correct_context(self):
         """
-        Шаблон post_edit сформирован
-        с правильным контекстом.
+        Шаблон post_create
+        и edit
+        сформирован с правильным контекстом.
         """
-        response = self.user_author.get(
+        response_dict = {
+            reverse('posts:post_create'): 'Создание поста',
             reverse(
                 'posts:post_edit', kwargs={
                     'post_id': str(
-                        PostViewTests.post.id)}))
-        self.assertIn('form', response.context)
-        self.assertIsInstance(response.context['form'], PostForm)
-        self.assertIn('is_edit', response.context)
-        is_edit = response.context['is_edit']
-        self.assertIsInstance(is_edit, bool)
-        self.assertEqual(is_edit, True)
+                        PostViewTests.post.id)}): 'Редактирование',
+        }
+        for address, context in response_dict.items():
+            with self.subTest(context=context):
+                error_message = 'ERROR {context}'
+                responses = self.authorized_user.get(address)
+                self.assertIn('form', responses.context, error_message)
+                self.assertIsInstance(
+                    responses.context['form'],
+                    PostForm, error_message
+                )
+                self.assertIn('is_edit', responses.context, error_message)
+                is_edit = responses.context['is_edit']
+                self.assertIsInstance(is_edit, bool, error_message)
 
     def test_add_comment_for_guest(self):
         """
@@ -236,6 +235,28 @@ class PostViewTests(TestCase):
         self.assertFalse(Follow.objects.filter(author=self.author_user,
                                                user=self.user))
 
+    def test_image_on_4_pages(self):
+        response_dict = {
+            reverse('posts:index'): 'Главная стр.',
+            reverse(
+                'posts:group_list',
+                kwargs={'slug': PostViewTests.group.slug}
+            ): 'Список постов в группе',
+            reverse(
+                'posts:profile', kwargs={
+                    'username': PostViewTests.user.username
+                }): 'Страница профиля',
+            reverse(
+                'posts:post_detail', kwargs={
+                    'post_id': str(
+                        PostViewTests.post.id)
+                }): 'Детали поста'
+        }
+        for address, temp in response_dict.items():
+            with self.subTest(temp=temp):
+                response = (self.guest.get(address))
+                self.assertContains(response, '<img')
+
 
 class PaginatorViewsTest(TestCase):
     @classmethod
@@ -258,36 +279,25 @@ class PaginatorViewsTest(TestCase):
             for num in range(1, 14)
         ]
         Post.objects.bulk_create(cls.posts)
-
-    def test_index_paginator(self):
-        """Тестируем 1 страницу паджинатора страницы index."""
-        response = self.guest.get(reverse('posts:index'))
-        self.assertEqual(len(response.context['page_obj']), 10)
-
-    def test_index_second_page_paginator(self):
-        """Тестируем 2 страницу паджинатора страницы index."""
-        response = self.guest.get(reverse('posts:index') + '?page=2')
-        self.assertEqual(len(response.context['page_obj']), 3)
-
-    def test_group_list_paginator(self):
-        """Тестируем паджинатор страницы group_list."""
-        response = self.guest.get(
+        cls.paginate_dict = {
+            reverse('posts:index'): 'Главная страница',
             reverse(
                 'posts:group_list',
-                kwargs={'slug': PaginatorViewsTest.group.slug}
-            )
-        )
-        self.assertEqual(len(response.context['page_obj']), 10)
-
-    def test_profile_paginator(self):
-        """Тестируем паджинатор страницы profile."""
-        response = self.guest.get(
+                kwargs={'slug': cls.group.slug}
+            ): 'Страница групп',
             reverse(
                 'posts:profile',
-                kwargs={'username': PaginatorViewsTest.user.username}
-            )
-        )
-        self.assertEqual(len(response.context['page_obj']), 10)
+                kwargs={'username': cls.user}
+            ): 'Страница профиля',
+        }
+
+    def test_first_page_views(self):
+        """На первой странице должно быть 10 постов"""
+        for address, temp in self.paginate_dict.items():
+            with self.subTest(temp=temp):
+                response = (self.guest.get(address))
+                self.assertEqual(len(response.context['page_obj']),
+                                 10, "ERROR")
 
 
 class CacheViewTest(TestCase):

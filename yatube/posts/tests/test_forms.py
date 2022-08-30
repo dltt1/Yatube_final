@@ -19,19 +19,6 @@ class PostFormTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='test')
-        cls.small_gif = (
-            b'\x47\x49\x46\x38\x39\x61\x02\x00'
-            b'\x01\x00\x80\x00\x00\x00\x00\x00'
-            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-            b'\x0A\x00\x3B'
-        )
-        cls.uploaded = SimpleUploadedFile(
-            name='small.gif',
-            content=cls.small_gif,
-            content_type='image/gif'
-        )
         cls.group = Group.objects.create(
             title='test-group',
             slug='test-slug',
@@ -40,7 +27,6 @@ class PostFormTests(TestCase):
         cls.form_data = {
             'text': 'test-post',
             'group': cls.group.id,
-            'image': cls.uploaded
         }
 
     @classmethod
@@ -70,14 +56,8 @@ class PostFormTests(TestCase):
         post = Post.objects.create(
             author=PostFormTests.user,
             text='test-post',
-            group=PostFormTests.group
+            group=PostFormTests.group,
         )
-        new_uploaded = SimpleUploadedFile(
-            name='small.gif',
-            content=PostFormTests.small_gif,
-            content_type='image/gif'
-        )
-        PostFormTests.form_data['image'] = new_uploaded
         new_post_text = 'new-text'
         new_group = Group.objects.create(
             title='new-test-group',
@@ -92,7 +72,10 @@ class PostFormTests(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.authorized_client.post(
             reverse('posts:post_edit', kwargs={'post_id': post.id}),
-            data={'text': new_post_text, 'group': new_group.id},
+            data={
+                'text': new_post_text,
+                'group': new_group.id,
+            },
             follow=True,
         )
         self.assertEqual(Post.objects.count(), 1)
@@ -107,6 +90,37 @@ class PostFormTests(TestCase):
             old_group_response.context['page_obj'].paginator.count,
             0
         )
+
+    def test_create_post_with_image(self):
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00'
+            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
+            b'\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
+        )
+        form_data = {
+            'text': 'Тестовый текст',
+            'group': self.group.id,
+            'author': self.user,
+            'image': uploaded,
+        }
+        posts_count = Post.objects.count()
+        self.authorized_client.post(
+            reverse('posts:post_create'),
+            data=form_data,
+            follow=True)
+        post_with_image = Post.objects.get(text='Тестовый текст')
+        self.assertEqual(Post.objects.count(), posts_count + 1)
+        self.assertEqual(post_with_image.text, form_data['text'])
+        self.assertEqual(post_with_image.group.id, form_data['group'])
+        self.assertEqual(post_with_image.author, form_data['author'])
+        self.assertEqual(post_with_image.image, 'posts/small.gif')
 
     def test_unauth_user_cant_publish_post(self):
         """Неавт. польз. не может сделать пост"""
@@ -127,7 +141,7 @@ class PostFormTests(TestCase):
             group=self.group
         )
         form_data = {
-            'text': 'text'
+            'text': 'Comment'
         }
         response = self.authorized_client.post(
             reverse('posts:add_comment', kwargs={'post_id': post.id}),
@@ -139,10 +153,7 @@ class PostFormTests(TestCase):
             reverse('posts:post_detail', kwargs={
                 'post_id': post.pk
             }))
-
         self.assertTrue(Comment.objects.count(), 1)
-        self.assertTrue(
-            post.comments.filter(
-                text=form_data['text']
-            ).exists()
-        )
+        self.assertTrue(Comment.objects.filter(post=post,
+                                               author=self.user,
+                                               text='Comment').exists())

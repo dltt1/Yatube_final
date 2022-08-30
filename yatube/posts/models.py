@@ -83,6 +83,13 @@ class Comment(models.Model):
 
 
 class Follow(models.Model):
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'author'], name='unique_author_user_following'
+            )
+        ]
+
     user = models.ForeignKey(
         User,
         related_name='follower',

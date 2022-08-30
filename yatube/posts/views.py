@@ -1,6 +1,6 @@
 from django.shortcuts import redirect, render, get_object_or_404
 from .utils import paginate_page
-from .models import Follow, Post, Group, User, Comment
+from .models import Follow, Post, Group, User
 from .forms import PostForm, CommentForm
 from django.contrib.auth.decorators import login_required
 
@@ -30,15 +30,11 @@ def group_posts(request, slug):
 def profile(request, username):
     template = 'posts/profile.html'
     author = get_object_or_404(User, username=username)
-    posts = Post.objects.filter(author=author)
+    posts = author.posts.all()
     page_obj = paginate_page(request, posts)
-    if request.user.is_authenticated:
-        following = Follow.objects.filter(
-            user=request.user.id,
-            author=author.id
-        ).exists()
-    else:
-        following = False
+    following = request.user.is_authenticated and Follow.objects.filter(
+        user=request.user, author=author
+    ).exists()
     context = {
         'author': author,
         'page_obj': page_obj,
@@ -51,7 +47,7 @@ def post_detail(request, post_id):
     template = 'posts/post_detail.html'
     post = get_object_or_404(Post, pk=post_id)
     form = CommentForm(request.POST or None)
-    comments = Comment.objects.filter(post=post)
+    comments = post.comments.all()
     context = {
         'post': post,
         'form': form,
@@ -67,28 +63,25 @@ def post_create(request):
         request.POST or None,
         files=request.FILES or None
     )
-    is_edit = False
-    context = {'form': form, 'is_edit': is_edit}
+    context = {'form': form, 'is_edit': False}
     if request.method == 'POST':
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
             post.save()
             return redirect('posts:profile', request.user)
-    form = PostForm()
     return render(request, template, context)
 
 
 @login_required
 def post_edit(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
-    is_edit = True
     form = PostForm(
         request.POST or None,
         instance=post,
         files=request.FILES or None
     )
-    context = {'form': form, 'is_edit': is_edit, 'post': post}
+    context = {'form': form, 'is_edit': True, 'post': post}
     if request.method == 'POST':
         if form.is_valid():
             post = form.save()
