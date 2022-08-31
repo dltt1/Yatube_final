@@ -129,6 +129,10 @@ class PostViewTests(TestCase):
                 self.assertIn('is_edit', responses.context, error_message)
                 is_edit = responses.context['is_edit']
                 self.assertIsInstance(is_edit, bool, error_message)
+                self.assertEqual(
+                    is_edit,
+                    bool(address != reverse('posts:post_create'))
+                )
 
     def test_add_comment_for_guest(self):
         """
@@ -191,8 +195,8 @@ class PostViewTests(TestCase):
                         PostViewTests.post.id)}))
         self.check_context_contains_page_or_post(response.context, post=True)
 
-    def test_add_comment_for_guest(self):
-        response = self.client.get(
+    def test_add_comment_for_auth_user(self):
+        response = self.authorized_user.get(
             reverse(
                 'posts:add_comment',
                 args={PostViewTests.post.id}
@@ -298,6 +302,15 @@ class PaginatorViewsTest(TestCase):
                 response = (self.guest.get(address))
                 self.assertEqual(len(response.context['page_obj']),
                                  10, "ERROR")
+        pages = {
+            1: 10,
+            2: 3
+        }
+        for page, expected_count in pages.items():
+            response = (self.guest.get(address, {"page": page}))
+            self.assertEqual(len(
+                response.context['page_obj']),
+                expected_count, 'ERROR')
 
 
 class CacheViewTest(TestCase):

@@ -40,17 +40,36 @@ class PostFormTests(TestCase):
         self.authorized_client.force_login(PostFormTests.user)
 
     def test_create_post(self):
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00'
+            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
+            b'\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
+        )
+        form_data = {
+            'text': 'test-text',
+            'group': self.group.id,
+            'author': self.user,
+            'image': uploaded,
+        }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
-            data=PostFormTests.form_data,
+            data=form_data,
             follow=True
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertEqual(Post.objects.count(), 1)
         post = Post.objects.first()
-        self.assertEqual(post.text, 'test-post')
+        self.assertEqual(post.text, 'test-text')
         self.assertEqual(post.author, self.user)
         self.assertEqual(post.group, PostFormTests.group)
+        self.assertEqual(post.image, 'posts/small.gif')
 
     def test_edit_post(self):
         post = Post.objects.create(
@@ -91,37 +110,6 @@ class PostFormTests(TestCase):
             0
         )
 
-    def test_create_post_with_image(self):
-        small_gif = (
-            b'\x47\x49\x46\x38\x39\x61\x01\x00'
-            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
-            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
-            b'\x00\x00\x01\x00\x01\x00\x00\x02'
-            b'\x02\x4c\x01\x00\x3b'
-        )
-        uploaded = SimpleUploadedFile(
-            name='small.gif',
-            content=small_gif,
-            content_type='image/gif'
-        )
-        form_data = {
-            'text': 'Тестовый текст',
-            'group': self.group.id,
-            'author': self.user,
-            'image': uploaded,
-        }
-        posts_count = Post.objects.count()
-        self.authorized_client.post(
-            reverse('posts:post_create'),
-            data=form_data,
-            follow=True)
-        post_with_image = Post.objects.get(text='Тестовый текст')
-        self.assertEqual(Post.objects.count(), posts_count + 1)
-        self.assertEqual(post_with_image.text, form_data['text'])
-        self.assertEqual(post_with_image.group.id, form_data['group'])
-        self.assertEqual(post_with_image.author, form_data['author'])
-        self.assertEqual(post_with_image.image, 'posts/small.gif')
-
     def test_unauth_user_cant_publish_post(self):
         """Неавт. польз. не может сделать пост"""
         response = self.guest.get(
@@ -153,7 +141,8 @@ class PostFormTests(TestCase):
             reverse('posts:post_detail', kwargs={
                 'post_id': post.pk
             }))
-        self.assertTrue(Comment.objects.count(), 1)
-        self.assertTrue(Comment.objects.filter(post=post,
-                                               author=self.user,
-                                               text='Comment').exists())
+        self.assertEqual(Comment.objects.count(), 1)
+        comment = Comment.objects.first()
+        self.assertEqual(comment.text, 'Comment')
+        self.assertEqual(comment.post, post)
+        self.assertEqual(comment.author, self.user)
