@@ -52,7 +52,6 @@ python manage.py createsuperuser
 python3 manage.py runserver
 ```
 ### Демо-версия проекта:
-
-<a href="https://dltt.pythonanywhere.com/" target="_blank"</a> 
+https://dltt.pythonanywhere.com/ 
 
 <h1 align="center">Автор: <a href="https://github.com/dltt1" target="_blank">Дмитрий Шапченко</a> 
