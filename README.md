@@ -23,25 +23,34 @@
 ### Запуск проекта в dev-режиме
 ### 1. Клонируйте репозиторий:
 
-   ```bash
-   git clone git@github.com:dltt1/hw05_final.git  
-   
+```bash
+git clone git@github.com:dltt1/hw05_final.git  
+```
+
 ### 2. Установите зависимости:
+
 ```
 pip install -r requirements.txt
 ``` 
+
 ### 3. Создайте и примените миграции: 
+
 ```
 python manage.py makemigrations
 python manage.py migrate
 ```
-### 4. Создайте суперпользователя
+
+### 4. Создайте суперпользователя:
+
 ```
 python manage.py createsuperuser
 ```
+
 ### 5. Запустите сервер:
+
 ```
 python3 manage.py runserver
 ```
+
 ### Авторы
 Дима Шапченко
