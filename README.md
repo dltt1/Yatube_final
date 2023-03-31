@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white"/>
 </div>
 
-Функционал
+### Функционал:
 - Регистрация и аутентификация пользователей
 - Создание, редактирование и удаление постов
 - Добавление и удаление фотографий к постам
@@ -26,20 +26,20 @@
    ```bash
    git clone git@github.com:dltt1/hw05_final.git  
    
-2. Установите зависимости:
+### 2. Установите зависимости:
 ```
 pip install -r requirements.txt
 ``` 
-3. Создайте и примените миграции: 
+### 3. Создайте и примените миграции: 
 ```
 python manage.py makemigrations
 python manage.py migrate
 ```
-4. Создайте суперпользователя
+### 4. Создайте суперпользователя
 ```
 python manage.py createsuperuser
 ```
-5. Запустите сервер:
+### 5. Запустите сервер:
 ```
 python3 manage.py runserver
 ```
